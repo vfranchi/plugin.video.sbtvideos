@@ -6,7 +6,7 @@ O plugin pode ter alguns bugs, pois não consegui testar todos os vídeos de tod
 sugestão, por favor, use as threads oficiais do plugin nos forums.
 
 Se você tiver alguma dúvida, um feedback, quer reportar um bug, ou apenas dizer um oi. Por favor, visite a thread oficial do plugin em 
-[Insert link to kodi forum here] ou [Insira link do forum brasileiro aqui]
+[http://forum.kodi.tv/showthread.php?tid=218591] ou [http://www.xbmcbrasil.net/showthread.php?tid=2180]
 
 # Instalação
 
