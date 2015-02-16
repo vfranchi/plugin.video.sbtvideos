@@ -1,33 +1,26 @@
 # Sobre
 
-O plugin SBT The Noite busca os vídeos do programa no site do SBT para tocá-los no XBMC, uma nova opção para assistir os episódios na Íntegra.
+O plugin SBT Vídeos busca todos os vídeos no site do SBT para tocá-los no XBMC, uma nova opção para assistir seus programas prediletos.
 
-O plugin busca os vídeos direto no site do SBT, assim você não tem os cortes que acontecem nos vídeos 
-do canal do The Noite no Youtube.
+O plugin pode ter alguns bugs, pois não consegui testar todos os vídeos de todos os programas. Caso ache algum bug, ou queira dar uma 
+sugestão, por favor, use as threads oficiais do plugin nos forums.
 
-Se você tiver alguma dúvida, um feedback, quer reportar um bug, ou apenas dizer um oi. Por favor, visite a thread oficial do plugin em [http://forum.kodi.tv/showthread.php?tid=203103]
+Se você tiver alguma dúvida, um feedback, quer reportar um bug, ou apenas dizer um oi. Por favor, visite a thread oficial do plugin em 
+[Insert link to kodi forum here] ou [Insira link do forum brasileiro aqui]
 
 # Instalação
 
-Baixe o [.zip do plugin](https://github.com/vfranchi/plugin.video.sbt-thenoite/releases). No XBMC, acesse Sistema > Configurações > Add-ons > Instalar a partir de um ZIP.
+Baixe o [.zip do plugin](https://github.com/vfranchi/plugin.video.sbtvideos/releases). No XBMC, acesse Sistema > Configurações > Add-ons > Instalar a partir de um ZIP.
 Encontre o .zip do plugin baixado e confirme.
 
 # Utilização
 
-Para usar o plugin, acesse Videos > Add-ons > SBT The Noite - Programas na Integra
+Para usar o plugin, acesse Videos > Add-ons > SBT Videos
 
-Você verá a lista de todos os vídeos que estão também no site do SBT. 
+Navegue pelas categorias de programas do site do SBT até encontrar um vídeo que queira assistir.
 
-Para os vídeos Na Íntegra, você pode dar o play em cada parte do programa separadamente, 
-ou então entre no menu de contexto (tecla c, normalmente) e selecione 'Tocar episódio inteiro'.
-
-# Ferramentas
-
-Algumas funcionalidades que estão presentes neste plugin:
-
-* Tocar o episódio inteiro, no menu de contexto dos vídeos da categoria Programas Na Íntegra.
-* Paginação para visualizar demais vídeos de uma categoria
-* Botão de vídeo aleatório, para quando você quer apenas assistir qualquer episódio.
+Para os vídeos do programa The Noite Na Íntegra, você pode dar o play em cada parte do programa separadamente, 
+ou então entrar no menu de contexto (tecla c, normalmente) e selecionar 'Tocar episódio inteiro'.
 
 # Analytics
 
