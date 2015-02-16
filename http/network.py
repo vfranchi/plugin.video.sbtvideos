@@ -3,40 +3,42 @@ import xbmcgui;
 import xbmcplugin;
 import xbmcaddon;
 import urllib2;
-
+from time import time;
+import pickle;
 
 class Cache:
 	cacheData = {};
 	settings = xbmcaddon.Addon("plugin.video.sbtvideos");
 	
 	def __init__(self):
-		if (settings.getSetting("cache") != ""):
-			cacheData = pickle.loads(settings.getSetting("cache"));
+		if (self.settings.getSetting("cache") != ""):
+			self.cacheData = pickle.loads(self.settings.getSetting("cache"));
 
 	def valid(self, key):
-		return (cacheData.has_key(url) and time() - cacheData[url]["timestamp"] < 1 * 24 * 3600);
+		return (self.cacheData.has_key(key) and time() - self.cacheData[key]["timestamp"] < 1 * 24 * 3600);
 		
 	def getData(self, key):
-		if cacheData.has_key(key):
-			return cacheData[key].get("data", None);
+		if self.cacheData.has_key(key):
+			return self.cacheData[key].get("data", None);
 		return None;
+		
 	def setData(self, key, data):
-		cacheData[url] = {
+		self.cacheData[key] = {
 			"timestamp" : time(),
 			"data" : data
 		};
-		settings.setSetting("cache", pickle.dumps(cacheData));
+		self.settings.setSetting("cache", pickle.dumps(self.cacheData));
 	
 	def delKey(self, key):
-		cacheData.pop(key, None);
-		settings.setSetting("cache", pickle.dumps(myCache));
+		self.cacheData.pop(key, None);
+		self.settings.setSetting("cache", pickle.dumps(self.cacheData));
 
 cache = Cache();
 		
 def fetchUrl(url):
 	# if url timestamp is less than 24-hour, return cached data
-	if (cache.valid(key)):
-		return cache.getData(key);
+	if (cache.valid(url)):
+		return cache.getData(url);
 	else:
 		header = {
 			"User-Agent" : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:34.0) Gecko/20100101 Firefox/34.0",

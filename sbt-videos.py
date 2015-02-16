@@ -8,17 +8,16 @@ import urlparse;
 import json;
 import re;
 import base64;
-from time import time;
 import pickle;
 import random;
 from http import network;
 
 # getting settings strings
-settings = xbmcaddon.Addon("plugin.video.sbt-thenoite");
+settings = xbmcaddon.Addon("plugin.video.sbtvideos");
 _ = settings.getLocalizedString;
 ga = {
 	"enabled" : False,
-	"UA" : 'UA-18146963-3',
+	"UA" : '',
 	"appName" : settings.getAddonInfo("name"),
 	"appVersion" : settings.getAddonInfo("version"),
 	"appId" : settings.getAddonInfo("id")
@@ -38,13 +37,12 @@ if (settings.getSetting("analytics") == "true"):
 		tracker.set("clientId", settings.getSetting("uuid"));
 
 # setting SBT urls
-thenoite_urls = {};
-# thenoite_urls["menu_api"] = "http://api.sbt.com.br/1.4.5/medias/key=AE8C984EECBA4F7F835C585D5CB6AB4B&fields=id,title,thumbnail,author&idsite=198&idSiteArea=1011&limit=100&orderBy=ordem&sort=asc";
-# thenoite_urls["media_api"] = "http://api.sbt.com.br/1.4.5/videos/key=AE8C984EECBA4F7F835C585D5CB6AB4B&fields=id,title,thumbnail,publishdate,secondurl&program=400&limit=300&orderBy=publishdate&category=$authorId&sort=desc";
-thenoite_urls["menu_api"] = "http://api.sbt.com.br/1.5.0/medias/key=AE8C984EECBA4F7F835C585D5CB6AB4B&fields=id,title,description,thumbnail,author,opcional&idsite=211&idSiteArea=1068&idPlaylist=3435&limit=100&orderby=ordem&sort=ASC";
-thenoite_urls["media_api"] = "http://api.sbt.com.br/1.5.0/videos/key=AE8C984EECBA4F7F835C585D5CB6AB4B&fields=id,title,idcategory,idprogram,program,thumbnail,publishdatestring,secondurl,playerkey,total&program=400&category=$authorId&limit=100&orderBy=publishdate&sort=desc&page=$page";
-thenoite_urls["video_url"] = 'http://fast.player.liquidplatform.com/pApiv2/embed/25ce5b8513c18a9eae99a8af601d0943/$videoId';
-
+urls = {};
+urls["sbtvideos"] = "http://www.sbt.com.br/sbtvideos/";
+urls["playlist"] = "http://api.sbt.com.br/1.5.0/playlists/key=AE8C984EECBA4F7F835C585D5CB6AB4B&fields=id&idsite=211&idSiteArea=1068&limit=1&description=$programId";
+urls["menu"] = "http://api.sbt.com.br/1.5.0/medias/key=AE8C984EECBA4F7F835C585D5CB6AB4B&fields=id,title,description,thumbnail,author,opcional&idsite=211&idSiteArea=1068&idPlaylist=$playlistId&limit=100&orderby=ordem&sort=ASC";
+urls["media"] = "http://api.sbt.com.br/1.5.0/videos/key=AE8C984EECBA4F7F835C585D5CB6AB4B&fields=id,title,idcategory,idprogram,program,thumbnail,publishdatestring,secondurl,playerkey,total&program=$programId&category=$authorId&limit=100&orderBy=publishdate&sort=desc&page=$page";
+urls["video"] = "http://fast.player.liquidplatform.com/pApiv2/embed/25ce5b8513c18a9eae99a8af601d0943/$videoId";
 
 thenoite_authors_slug = {
 	"4526" : "naintegra",
@@ -69,6 +67,16 @@ args = urlparse.parse_qs(sys.argv[2][1:]);
 def log(msg):
 	xbmc.log("["+_(30006)+"]: "+msg, 0);
 
+def logError(msg):
+	log("Error: "+msg);
+	# do nothing
+	toaster = xbmcgui.Dialog();
+	try:
+		toaster.notification(_(30006), _(30101), xbmcgui.NOTIFICATION_WARNING, 3000);
+	except AttributeError:
+		toaster.ok(_(30006), _(30101));
+	pass
+	
 def invertDates(date):
 	date = date.split("/");
 	date.reverse();
@@ -170,7 +178,7 @@ def playVideoList(videos_ids):
 		pDialogCount = pDialogCount + 1;
 		pDialog.update(int(90*pDialogCount/float(pDialogLength)), _(30004).format(str(pDialogCount),str(pDialogLength)));
 		
-		iframe = network.fetchUrl(thenoite_urls["video_url"].replace("$videoId", video_id));
+		iframe = network.fetchUrl(urls["video"].replace("$videoId", video_id));
 		video = parseMediaInfo(iframe);
 		
 		if ("error" in video and video["error"] == True):
@@ -199,7 +207,7 @@ def playVideoList(videos_ids):
 	xbmc.Player().play(xbmcPlaylist);
 	
 def playVideo(video_id):
-	iframe = network.fetchUrl(thenoite_urls["video_url"].replace("$videoId", video_id));
+	iframe = network.fetchUrl(urls["video"].replace("$videoId", video_id));
 	video = parseMediaInfo(iframe);
 	
 	if (ga["enabled"]):
@@ -232,124 +240,161 @@ def playVideo(video_id):
 mode = args.get("mode", None);
 
 if mode is None:
+	from bs4 import BeautifulSoup;
 	# settings.setSetting("welcome", "");
 	# settings.setSetting("0.2.1", "");
-	if (settings.getSetting("welcome") == ""): 
-		welcome = xbmcgui.Dialog();
-		opt = welcome.yesno(_(30301), _(30302), None, None, _(30303), _(30304));
-		if (opt == True):
-			settings.setSetting("analytics", "true");
-		else:
-			settings.setSetting("analytics", "false");
-		settings.setSetting("welcome", "True");
+	# if (settings.getSetting("welcome") == ""): 
+		# welcome = xbmcgui.Dialog();
+		# opt = welcome.yesno(_(30301), _(30302), None, None, _(30303), _(30304));
+		# if (opt == True):
+			# settings.setSetting("analytics", "true");
+		# else:
+			# settings.setSetting("analytics", "false");
+		# settings.setSetting("welcome", "True");
 		
-		try:
-			Tracker
-		except NameError:
-			from UniversalAnalytics import Tracker;
-			tracker = Tracker.create(ga["UA"]);
-			tracker.set("appName", ga["appName"]);
-			tracker.set("appVersion", ga["appVersion"]);
-			tracker.set("appId", ga["appId"]);
-			if (settings.getSetting("uuid") == ""):
-				settings.setSetting("uuid", tracker.params["cid"]);
-			else:
-				tracker.set("clientId", settings.getSetting("uuid"));
+		# try:
+			# Tracker
+		# except NameError:
+			# from UniversalAnalytics import Tracker;
+			# tracker = Tracker.create(ga["UA"]);
+			# tracker.set("appName", ga["appName"]);
+			# tracker.set("appVersion", ga["appVersion"]);
+			# tracker.set("appId", ga["appId"]);
+			# if (settings.getSetting("uuid") == ""):
+				# settings.setSetting("uuid", tracker.params["cid"]);
+			# else:
+				# tracker.set("clientId", settings.getSetting("uuid"));
 			
 		
-		tracker.send("event", "Usage", "install", screenName="Welcome");
-	elif (settings.getSetting("0.2.1") == ""):
-		dialog = xbmcgui.Dialog();
-		dialog.ok(_(30305), _(30306));
-		settings.setSetting("0.2.1", "True");
+		# tracker.send("event", "Usage", "install", screenName="Welcome");
+	# elif (settings.getSetting("0.2.1") == ""):
+		# dialog = xbmcgui.Dialog();
+		# dialog.ok(_(30305), _(30306));
+		# settings.setSetting("0.2.1", "True");
 		
 	if (ga["enabled"]):
 		tracker.send("screenview", screenName="Main Menu")
 
 	xbmcplugin.setContent(addon_handle, 'tvshows');
 	
-	index = network.fetchUrl(thenoite_urls["menu_api"]);
-	menu = json.loads(index);
-	
-	# try to recover from sbt api error
-	saved = False;
-	if ("error" in menu):
-		xbmc.log("["+_(30006)+"]: "+str(menu["error"]), 0);
-		
-		# taking note from the amount of errors the SBT API may throw
-		if (ga["enabled"]):
-			tracker.send("event", "Usage", "error", screenName="Main Menu");
-			
-		if (index = network.cache.getOldData(thenoite_urls["menu_api"])):
-			menu = json.loads(myCache[thenoite_urls["menu_api"]]["data"]);
-			if ("error" in menu):
-				clearCacheFor(thenoite_urls["menu_api"]);
-			else:
-				saved = True;
-	
-	if ("error" in menu and saved == False):
-		# do nothing
-		toaster = xbmcgui.Dialog();
-		try:
-			toaster.notification(_(30006), _(30102), xbmcgui.NOTIFICATION_WARNING, 3000);
-		except AttributeError:
-			toaster.ok(_(30006), _(30102));
-		pass
-	else:
-		# displaying each video category from The Noite website
-		for menuItem in menu["medias"]:
-			url = makeUrl({"mode" : "listitems", "author" : menuItem["author"], "title" : menuItem["title"].encode('utf8'), "thumb" : menuItem["thumbnail"]});
-		
-			li = xbmcgui.ListItem(menuItem["title"], iconImage=menuItem["thumbnail"]);
-			li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
-			xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
+	# displaying each tv show category from SBT Videos Website
+	index = network.fetchUrl(urls["sbtvideos"]);
+	soup = BeautifulSoup(index);
+	topmenu = soup.find(id="ContentTopMenu");
+	if (topmenu):
+		for li in topmenu.find_all("li"):
+			if "boxSearch" not in li.get("class"):
+				url = makeUrl({"mode" : "listprogram", "rel" : li.get("rel")});
+				li = xbmcgui.ListItem(li.get_text(), iconImage="DefaultVideo.png");
+				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+				xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
 
 	xbmcplugin.endOfDirectory(addon_handle);
+elif (mode[0] == "listprogram"):
+	from bs4 import BeautifulSoup;
+	xbmcplugin.setContent(addon_handle, 'tvshows');
+	rel = args.get("rel")[0];
+	
+	# displaying each tv show from selected category
+	index = network.fetchUrl(urls["sbtvideos"]);
+	soup = BeautifulSoup(index);
+	categorybox = soup.find(id=rel);
+	if (categorybox):
+		for li in categorybox.find_all("li"):
+			if li.get("title") > 0:
+				programId = re.compile("programa/(\d*)/").search(li.a.get("href"));
+				if (programId):
+					url = makeUrl({"mode" : "programmenu", "programId" : programId.group(1), "title" : li.a.get_text().strip()});
+					li = xbmcgui.ListItem(li.a.get_text().strip(), iconImage="DefaultVideo.png");
+					li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+					xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
+				else:
+					logError("Couldn't find program id for "+li.a.get("href"));
+	
+	xbmcplugin.endOfDirectory(addon_handle);
+elif (mode[0] == "programmenu"):
+	programId = args.get("programId")[0];
+	programTitle = args.get("title", [""])[0];
+	index = network.fetchUrl(urls["playlist"].replace("$programId", str(programId)));
+	obj = json.loads(index);
+	if "playlists" in obj:
+		xbmcplugin.setContent(addon_handle, 'tvshows');
+		
+		playlistId = str(obj["playlists"][0]["id"]);
+		log("playlistId: "+playlistId);
+		index = network.fetchUrl(urls["menu"].replace("$playlistId", playlistId));
+		menu = json.loads(index);
+	
+		# try to recover from sbt api error
+		saved = False;
+		if "error" in menu:
+			index = network.cache.getData(urls["menu"].replace("$playlistId", playlistId));
+			if (index):
+				menu = json.loads(index);
+				if "error" in menu:
+					network.cache.delKey(urls["menu"].replace("$playlistId", playlistId));
+				else:
+					saved = True;
+	
+		if ("error" in menu and saved == False):
+			logError(menu["error"], _(30006), _(30102));
+		else:
+			# displaying each video category from the selected program
+			for menuItem in menu["medias"]:
+				url = makeUrl({"mode" : "listitems", "author" : menuItem["author"], "programId" : programId, "title" : menuItem["title"].encode('utf8'), "thumb" : menuItem["thumbnail"]});
+				li = xbmcgui.ListItem(menuItem["title"], iconImage=menuItem["thumbnail"]);
+				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+				xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
+
+		xbmcplugin.endOfDirectory(addon_handle);
+	else:
+		mode[0] = "listitems";
+
+if mode is None:
+	pass
 elif (mode[0] == "listitems"):
 	xbmcplugin.setContent(addon_handle, 'episodes');
 	
-	authorId = args.get("author")[0];
+	programId = args.get("programId")[0];
+	authorId = args.get("author", [""])[0];
 	currentPage = args.get("page", ["0"])[0]
-	url = thenoite_urls["media_api"].replace("$authorId", authorId).replace("$page", currentPage);
+	categoryTitle = args.get("title", ["Sem Titulo"])[0];
+	categoryThumb = args.get("thumb", ["DefaultFolder.png"])[0];
+	url = urls["media"].replace("$programId", programId).replace("$authorId", authorId).replace("$page", currentPage);
 	
 	if (ga["enabled"]):
-		tracker.send("screenview", screenName="Second Menu - "+args.get("title")[0]+" - Page "+currentPage);
+		tracker.send("screenview", screenName="Second Menu - "+categoryTitle+" - Page "+currentPage);
 	
-	index = fetchUrl(url);
+	index = network.fetchUrl(url);
 	videos = json.loads(index);
 
 	# trying to recover from sbt api error
 	saved = False;
 	if ("error" in videos):
-		xbmc.log("["+_(30006)+"]: "+str(videos["error"]), 0);
+		log(str(videos["error"]));
 		
 		# taking note from the amount of errors the SBT API may throw
 		if (ga["enabled"]):
-			tracker.send("event", "Usage", "error", screenName="Second Menu - "+args.get("title")[0]);
+			tracker.send("event", "Usage", "error", screenName="Second Menu - "+categoryTitle);
 	
-		if (myCache.has_key(url)):
-			videos = json.loads(myCache[url]["data"]);
+		index = network.cache.getData(url)
+		if (index):
+			videos = json.loads(index);
 			if ("error" in videos):
-				clearCacheFor(url);
+				network.cache.delKey(url);
 			else:
 				saved = True;
 	
 	if (int(currentPage) > 0):
-		url = makeUrl({"mode" : "listitems", "author" : args.get("author")[0], "title" : args.get("title")[0], "thumb" : args.get("thumb")[0], "page" : (int(currentPage)-1), "updating" : "true"});
+		url = makeUrl({"mode" : "listitems", "programId" : programId, "author" : authorId, "title" : categoryTitle, "thumb" : categoryThumb, "page" : (int(currentPage)-1), "updating" : "true"});
 	
-		li = xbmcgui.ListItem(_(30202), iconImage=args.get("thumb")[0]);
+		li = xbmcgui.ListItem(_(30202), iconImage=categoryThumb);
 		li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
 
 		xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
 		
 	if ("error" in videos and saved == False):
-		# do nothing
-		toaster = xbmcgui.Dialog();
-		try:
-			toaster.notification(_(30006), _(30101), xbmcgui.NOTIFICATION_WARNING, 3000);
-		except AttributeError:
-			toaster.ok(_(30006), _(30101));
-		pass
+		logError(str(videos["error"]));
 	elif ((authorId in thenoite_authors_slug) and thenoite_authors_slug[authorId] == "naintegra"):
 		# grouping urls by episodes
 		episodes = {};
@@ -415,7 +460,7 @@ elif (mode[0] == "listitems"):
 	else:
 		if (randomButtonEnabled):
 			settings.setSetting("random.dump", pickle.dumps(videos["videos"]));
-			url = url = makeUrl({"mode" : "randomitem", "option" : "video", "title" : args.get("title")[0], "page" : currentPage});
+			url = url = makeUrl({"mode" : "randomitem", "option" : "video", "title" : categoryTitle, "page" : currentPage});
 	
 			li = xbmcgui.ListItem(_(30203), iconImage='special://home/addons/plugin.video.sbt-thenoite/question-mark.jpg');
 			li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
@@ -432,9 +477,9 @@ elif (mode[0] == "listitems"):
 	
 	#add a Next Page button at the end
 	if (len(videos["videos"]) == 100):
-		url = makeUrl({"mode" : "listitems", "author" : args.get("author")[0], "title" : args.get("title")[0], "thumb" : args.get("thumb")[0], "page" : (int(currentPage)+1), "updating" : "true"});
+		url = makeUrl({"mode" : "listitems", "programId" : programId, "author" : authorId, "title" : categoryTitle, "thumb" : categoryThumb, "page" : (int(currentPage)+1), "updating" : "true"});
 	
-		li = xbmcgui.ListItem(_(30201), iconImage=args.get("thumb")[0]);
+		li = xbmcgui.ListItem(_(30201), iconImage=categoryThumb);
 		li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
 
 		xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
