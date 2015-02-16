@@ -54,7 +54,9 @@ addon_handle = int(sys.argv[1]);
 args = urlparse.parse_qs(sys.argv[2][1:]);
 
 def log(msg):
-	xbmc.log("["+_(30006)+"]: "+msg, 0);
+	msg = "["+_(30006)+"]: "+msg;
+	msg = msg.encode("utf-8");
+	xbmc.log(msg, 0);
 
 def logError(msg):
 	log("Error: "+msg);
