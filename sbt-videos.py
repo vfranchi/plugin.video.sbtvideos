@@ -3,6 +3,7 @@ import xbmc;
 import xbmcgui;
 import xbmcplugin;
 import xbmcaddon;
+import xbmcvfs;
 import urllib;
 import urlparse;
 import json;
@@ -17,7 +18,7 @@ settings = xbmcaddon.Addon("plugin.video.sbtvideos");
 _ = settings.getLocalizedString;
 ga = {
 	"enabled" : False,
-	"UA" : '',
+	"UA" : 'UA-18146963-3',
 	"appName" : settings.getAddonInfo("name"),
 	"appVersion" : settings.getAddonInfo("version"),
 	"appId" : settings.getAddonInfo("id")
@@ -44,20 +45,8 @@ urls["menu"] = "http://api.sbt.com.br/1.5.0/medias/key=AE8C984EECBA4F7F835C585D5
 urls["media"] = "http://api.sbt.com.br/1.5.0/videos/key=AE8C984EECBA4F7F835C585D5CB6AB4B&fields=id,title,idcategory,idprogram,program,thumbnail,publishdatestring,secondurl,playerkey,total&program=$programId&category=$authorId&limit=100&orderBy=publishdate&sort=desc&page=$page";
 urls["video"] = "http://fast.player.liquidplatform.com/pApiv2/embed/25ce5b8513c18a9eae99a8af601d0943/$videoId";
 
-thenoite_authors_slug = {
-	"4526" : "naintegra",
-	"4529" : "entrevistas",
-	"4527" : "melhoresmomentos",
-	"4769" : "roommates",
-	"4670" : "musical",
-	"4521" : "omestremandou",
-	"4597" : "recordesincriveis",
-	"4620" : "desenhosdodanilo",
-	"4519" : "leiteshow",
-	"4517" : "ohomemdoqi200",
-	"4518" : "rodadadanoite",
-	"4520" : "cyberbullying",
-	"4528" : "chamadas"
+group_by_episodes = {
+	"4526" : "naintegra"
 };
 
 base_url = sys.argv[0];
@@ -242,35 +231,35 @@ mode = args.get("mode", None);
 if mode is None:
 	from bs4 import BeautifulSoup;
 	# settings.setSetting("welcome", "");
-	# settings.setSetting("0.2.1", "");
-	# if (settings.getSetting("welcome") == ""): 
-		# welcome = xbmcgui.Dialog();
-		# opt = welcome.yesno(_(30301), _(30302), None, None, _(30303), _(30304));
-		# if (opt == True):
-			# settings.setSetting("analytics", "true");
-		# else:
-			# settings.setSetting("analytics", "false");
-		# settings.setSetting("welcome", "True");
+	# settings.setSetting("0.0.1", "");
+	if (settings.getSetting("welcome") == ""): 
+		welcome = xbmcgui.Dialog();
+		opt = welcome.yesno(_(30301), _(30302), _(30303), None, _(30305), _(30306));
+		if (opt == True):
+			settings.setSetting("analytics", "true");
+		else:
+			settings.setSetting("analytics", "false");
+		settings.setSetting("welcome", "True");
 		
-		# try:
-			# Tracker
-		# except NameError:
-			# from UniversalAnalytics import Tracker;
-			# tracker = Tracker.create(ga["UA"]);
-			# tracker.set("appName", ga["appName"]);
-			# tracker.set("appVersion", ga["appVersion"]);
-			# tracker.set("appId", ga["appId"]);
-			# if (settings.getSetting("uuid") == ""):
-				# settings.setSetting("uuid", tracker.params["cid"]);
-			# else:
-				# tracker.set("clientId", settings.getSetting("uuid"));
+		try:
+			Tracker
+		except NameError:
+			from UniversalAnalytics import Tracker;
+			tracker = Tracker.create(ga["UA"]);
+			tracker.set("appName", ga["appName"]);
+			tracker.set("appVersion", ga["appVersion"]);
+			tracker.set("appId", ga["appId"]);
+			if (settings.getSetting("uuid") == ""):
+				settings.setSetting("uuid", tracker.params["cid"]);
+			else:
+				tracker.set("clientId", settings.getSetting("uuid"));
 			
 		
-		# tracker.send("event", "Usage", "install", screenName="Welcome");
-	# elif (settings.getSetting("0.2.1") == ""):
-		# dialog = xbmcgui.Dialog();
-		# dialog.ok(_(30305), _(30306));
-		# settings.setSetting("0.2.1", "True");
+		tracker.send("event", "Usage", "install", screenName="Welcome");
+	elif (settings.getSetting("0.0.1") == ""):
+		dialog = xbmcgui.Dialog();
+		dialog.ok(_(30307), _(30302), _(30308));
+		settings.setSetting("0.0.1", "True");
 		
 	if (ga["enabled"]):
 		tracker.send("screenview", screenName="Main Menu")
@@ -284,9 +273,9 @@ if mode is None:
 	if (topmenu):
 		for li in topmenu.find_all("li"):
 			if "boxSearch" not in li.get("class"):
-				url = makeUrl({"mode" : "listprogram", "rel" : li.get("rel")});
-				li = xbmcgui.ListItem(li.get_text(), iconImage="DefaultVideo.png");
-				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+				url = makeUrl({"mode" : "listprogram", "rel" : li.get("rel"), "title" : li.get_text().strip().encode("utf8")});
+				li = xbmcgui.ListItem(li.get_text().strip(), iconImage="special://home/addons/plugin.video.sbtvideos/default-image.jpg");
+				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
 				xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
 
 	xbmcplugin.endOfDirectory(addon_handle);
@@ -294,6 +283,10 @@ elif (mode[0] == "listprogram"):
 	from bs4 import BeautifulSoup;
 	xbmcplugin.setContent(addon_handle, 'tvshows');
 	rel = args.get("rel")[0];
+	categoryTitle = args.get("title", [""])[0];
+	
+	if (ga["enabled"]):
+		tracker.send("screenview", screenName="Category Menu - "+categoryTitle);
 	
 	# displaying each tv show from selected category
 	index = network.fetchUrl(urls["sbtvideos"]);
@@ -304,9 +297,15 @@ elif (mode[0] == "listprogram"):
 			if li.get("title") > 0:
 				programId = re.compile("programa/(\d*)/").search(li.a.get("href"));
 				if (programId):
-					url = makeUrl({"mode" : "programmenu", "programId" : programId.group(1), "title" : li.a.get_text().strip()});
-					li = xbmcgui.ListItem(li.a.get_text().strip(), iconImage="DefaultVideo.png");
-					li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+					url = makeUrl({"mode" : "programmenu", "programId" : programId.group(1).encode("utf8"), "title" : li.a.get_text().strip().encode("utf8")});
+					programImgFolder = "special://home/addons/plugin.video.sbtvideos/program/"+programId.group(1)+"/";
+					if (xbmcvfs.exists(programImgFolder)):
+						li = xbmcgui.ListItem(li.a.get_text().strip(), iconImage=programImgFolder+"thumb.jpg");
+						li.setProperty('fanart_image', programImgFolder+'fanart.jpg');
+					else:
+						li = xbmcgui.ListItem(li.a.get_text().strip(), iconImage="special://home/addons/plugin.video.sbtvideos/default-image.jpg");
+						li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
+						
 					xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
 				else:
 					logError("Couldn't find program id for "+li.a.get("href"));
@@ -315,13 +314,18 @@ elif (mode[0] == "listprogram"):
 elif (mode[0] == "programmenu"):
 	programId = args.get("programId")[0];
 	programTitle = args.get("title", [""])[0];
+	
+	if (ga["enabled"]):
+		tracker.send("screenview", screenName="Program Menu - "+programTitle);
+	
 	index = network.fetchUrl(urls["playlist"].replace("$programId", str(programId)));
-	obj = json.loads(index);
+	obj = json.loads(index);	
+	# log("programId: "+programId);
 	if "playlists" in obj:
 		xbmcplugin.setContent(addon_handle, 'tvshows');
 		
 		playlistId = str(obj["playlists"][0]["id"]);
-		log("playlistId: "+playlistId);
+		# log("playlistId: "+playlistId);
 		index = network.fetchUrl(urls["menu"].replace("$playlistId", playlistId));
 		menu = json.loads(index);
 	
@@ -343,13 +347,19 @@ elif (mode[0] == "programmenu"):
 			for menuItem in menu["medias"]:
 				url = makeUrl({"mode" : "listitems", "author" : menuItem["author"], "programId" : programId, "title" : menuItem["title"].encode('utf8'), "thumb" : menuItem["thumbnail"]});
 				li = xbmcgui.ListItem(menuItem["title"], iconImage=menuItem["thumbnail"]);
-				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+				programImgFolder = "special://home/addons/plugin.video.sbtvideos/program/"+programId+"/";
+				if (xbmcvfs.exists(programImgFolder)):
+					li.setProperty('fanart_image', programImgFolder+'fanart.jpg');
+				else:
+					li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
 				xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
 
 		xbmcplugin.endOfDirectory(addon_handle);
 	else:
 		mode[0] = "listitems";
 
+# the states are separated in here because there is a case where the user goes to 'programmenu'
+# and then immediately to 'listitems'
 if mode is None:
 	pass
 elif (mode[0] == "listitems"):
@@ -358,7 +368,7 @@ elif (mode[0] == "listitems"):
 	programId = args.get("programId")[0];
 	authorId = args.get("author", [""])[0];
 	currentPage = args.get("page", ["0"])[0]
-	categoryTitle = args.get("title", ["Sem Titulo"])[0];
+	categoryTitle = args.get("title", [_(30007)])[0];
 	categoryThumb = args.get("thumb", ["DefaultFolder.png"])[0];
 	url = urls["media"].replace("$programId", programId).replace("$authorId", authorId).replace("$page", currentPage);
 	
@@ -389,13 +399,17 @@ elif (mode[0] == "listitems"):
 		url = makeUrl({"mode" : "listitems", "programId" : programId, "author" : authorId, "title" : categoryTitle, "thumb" : categoryThumb, "page" : (int(currentPage)-1), "updating" : "true"});
 	
 		li = xbmcgui.ListItem(_(30202), iconImage=categoryThumb);
-		li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+		programImgFolder = "special://home/addons/plugin.video.sbtvideos/program/"+programId+"/";
+		if (xbmcvfs.exists(programImgFolder)):
+			li.setProperty('fanart_image', programImgFolder+'fanart.jpg');
+		else:
+			li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
 
 		xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
 		
 	if ("error" in videos and saved == False):
 		logError(str(videos["error"]));
-	elif ((authorId in thenoite_authors_slug) and thenoite_authors_slug[authorId] == "naintegra"):
+	elif (authorId in group_by_episodes):
 		# grouping urls by episodes
 		episodes = {};
 		for video in videos["videos"]:
@@ -435,9 +449,14 @@ elif (mode[0] == "listitems"):
 			settings.setSetting("random.dump", pickle.dumps(episodes));
 			url = url = makeUrl({"mode" : "randomitem", "option" : "episode", "title" : args.get("title")[0], "page" : currentPage});
 	
-			li = xbmcgui.ListItem(_(30203), iconImage='special://home/addons/plugin.video.sbt-thenoite/question-mark.jpg');
-			li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
-
+			programImgFolder = "special://home/addons/plugin.video.sbtvideos/program/"+programId+"/";
+			if (xbmcvfs.exists(programImgFolder)):
+				li = xbmcgui.ListItem(_(30203), iconImage=programImgFolder+'question-mark.jpg');
+				li.setProperty('fanart_image', programImgFolder+'fanart.jpg');
+			else:
+				li = xbmcgui.ListItem(_(30203), iconImage='special://home/addons/plugin.video.sbtvideos/question-mark.jpg');
+				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
+			
 			xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li);
 	
 		# listing each episode part
@@ -453,17 +472,38 @@ elif (mode[0] == "listitems"):
 			
 				li = xbmcgui.ListItem(video["title"], iconImage=video["thumbnail"]);
 				li.addContextMenuItems([(_(30001), 'XBMC.RunPlugin('+whole_url+')')]);
-				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
-
+				programImgFolder = "special://home/addons/plugin.video.sbtvideos/program/"+programId+"/";
+				if (xbmcvfs.exists(programImgFolder)):
+					li.setProperty('fanart_image', programImgFolder+'fanart.jpg');
+				else:
+					li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
 				xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li);
+				
+		#add a Next Page button at the end
+		if (len(videos["videos"]) == 100):
+			url = makeUrl({"mode" : "listitems", "programId" : programId, "author" : authorId, "title" : categoryTitle, "thumb" : categoryThumb, "page" : (int(currentPage)+1), "updating" : "true"});
+		
+			li = xbmcgui.ListItem(_(30201), iconImage=categoryThumb);
+			programImgFolder = "special://home/addons/plugin.video.sbtvideos/program/"+programId+"/";
+			if (xbmcvfs.exists(programImgFolder)):
+				li.setProperty('fanart_image', programImgFolder+'fanart.jpg');
+			else:
+				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
+
+			xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
 		
 	else:
 		if (randomButtonEnabled):
 			settings.setSetting("random.dump", pickle.dumps(videos["videos"]));
 			url = url = makeUrl({"mode" : "randomitem", "option" : "video", "title" : categoryTitle, "page" : currentPage});
 	
-			li = xbmcgui.ListItem(_(30203), iconImage='special://home/addons/plugin.video.sbt-thenoite/question-mark.jpg');
-			li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+			programImgFolder = "special://home/addons/plugin.video.sbtvideos/program/"+programId+"/";
+			if (xbmcvfs.exists(programImgFolder)):
+				li = xbmcgui.ListItem(_(30203), iconImage=programImgFolder+'question-mark.jpg');
+				li.setProperty('fanart_image', programImgFolder+'fanart.jpg');
+			else:
+				li = xbmcgui.ListItem(_(30203), iconImage='special://home/addons/plugin.video.sbtvideos/question-mark.jpg');
+				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
 
 			xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li);
 	
@@ -471,18 +511,26 @@ elif (mode[0] == "listitems"):
 			url = makeUrl({"mode" : "videourl", "play_video" : video["id"]});
 	
 			li = xbmcgui.ListItem(video["title"], iconImage=video["thumbnail"]);
-			li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+			programImgFolder = "special://home/addons/plugin.video.sbtvideos/program/"+programId+"/";
+			if (xbmcvfs.exists(programImgFolder)):
+				li.setProperty('fanart_image', programImgFolder+'fanart.jpg');
+			else:
+				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
 
 			xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li);
 	
-	#add a Next Page button at the end
-	if (len(videos["videos"]) == 100):
-		url = makeUrl({"mode" : "listitems", "programId" : programId, "author" : authorId, "title" : categoryTitle, "thumb" : categoryThumb, "page" : (int(currentPage)+1), "updating" : "true"});
-	
-		li = xbmcgui.ListItem(_(30201), iconImage=categoryThumb);
-		li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbt-thenoite/fanart.jpg');
+		#add a Next Page button at the end
+		if (len(videos["videos"]) == 100):
+			url = makeUrl({"mode" : "listitems", "programId" : programId, "author" : authorId, "title" : categoryTitle, "thumb" : categoryThumb, "page" : (int(currentPage)+1), "updating" : "true"});
+		
+			li = xbmcgui.ListItem(_(30201), iconImage=categoryThumb);
+			programImgFolder = "special://home/addons/plugin.video.sbtvideos/program/"+programId+"/";
+			if (xbmcvfs.exists(programImgFolder)):
+				li.setProperty('fanart_image', programImgFolder+'fanart.jpg');
+			else:
+				li.setProperty('fanart_image', 'special://home/addons/plugin.video.sbtvideos/fanart.jpg');
 
-		xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
+			xbmcplugin.addDirectoryItem(handle=addon_handle, url=url, listitem=li, isFolder=True);
 	
 	#if user is using pagination, updateListing is True
 	updateListing = False if args.get("updating", ["false"])[0] == "false" else True;
@@ -493,10 +541,11 @@ elif (mode[0] == "episodeurl"):
 	videos_ids = json.loads(args.get("play_episode")[0]);
 	playVideoList(videos_ids);
 elif (mode[0] == "randomitem"):
-	currentPage = args.get("page", ["0"])[0]
+	currentPage = args.get("page", ["0"])[0];
+	title = args.get("title", [_(30007)])[0];
 	
 	if (ga["enabled"]):
-		tracker.send("event", "Randonizer", args.get("title")[0], screenName="Second Menu - "+args.get("title")[0]+" - Page "+currentPage);
+		tracker.send("event", "Randonizer", title, screenName="Second Menu - "+title+" - Page "+currentPage);
 	
 	option = args.get("option", [""])[0];
 	if (option == "episode"):
